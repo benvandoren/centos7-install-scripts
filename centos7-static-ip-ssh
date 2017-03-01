@@ -1,0 +1,72 @@
+#!/bin/bash
+# run as root
+# Assumes fresh minimal install of centos7 and that networking was configured during the install
+
+# echo "WARNING: Only run this script once!"
+# echo "Otherwise you will have to manually clean up /etc/sysconfig/network-scripts/ifcfg-$IFACE"
+
+IFACE=$1 # enp0s3
+IPADDR=$2 #192.168.1.z
+HOSTNAME=$3
+USER=$4
+
+if [ $(id -u) -ne 0 ]
+  then
+  echo "ERROR: Run as Root; Aborting"
+  exit
+fi
+
+# check networking
+pingGoog=$(ping google.com -c 1 | grep -c "1 packets transmitted, 1 received, 0% packet loss")
+if [ $pingGoog -ne 1 ]
+  then
+  echo "ERROR: No internet connection; Aborting"
+  exit
+fi
+
+echo "Setting static IP and Hostname"
+# backup old cfg
+# networking cfg files
+CONFIG_FILE="/etc/sysconfig/network-scripts/ifcfg-$IFACE"
+cp $CONFIG_FILE "$CONFIG_FILE.orig" # errors if file doesn't exist, TODO fix
+# sed -c -i "s/\(BOOTPROTO *= *\).*/\1static/" $CONFIG_FILE
+
+# Doesn't set uuid, does this matter?
+# there are some more options available that I skip here
+printf \
+"TYPE=Ethernet\n\
+BOOTPROTO=static\n\
+DEFROUTE=yes\n\
+PEERDNS=yes\n\
+PEERROUTES=yes\n\
+NAME=$IFACE\n\
+DEVICE=$IFACE\n\
+ONBOOT=yes\n\
+IPADDR=$IPADDR\n\
+NETMASK=255.255.255.0\n\
+GATEWAY=192.168.1.1\n\
+DNS1=192.168.1.1" \
+> $CONFIG_FILE
+#
+CONFIG_FILE="/etc/sysconfig/network"
+printf \
+"NETWORKING=yes\n\
+HOSTNAME=$HOSTNAME\n\
+GATEWAY=192.168.1.1" \
+> $CONFIG_FILE
+# hostnamectl set-hostname <new hostname> --- could work too
+sysctl kernel.hostname=$HOSTNAME
+printf $HOSTNAME > /etc/hostname # for centos7
+hostname $HOSTNAME # change hostname immediately
+
+echo "Adding ssh keys to authorized_keys"
+# add ssh key
+su $USER -c "mkdir /home/$USER/.ssh"
+su $USER -c \
+"printf \
+\"ssh-rsa key1 user@foo\n\
+\n\
+ssh-rsa key2 user@bar\"\
+> /home/$USER/.ssh/authorized_keys"
+chmod 700 /home/$USER/.ssh
+chmod 600 /home/$USER/.ssh/authorized_keys

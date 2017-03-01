@@ -1,0 +1,30 @@
+#!/bin/bash
+# run as root
+# Assumes fresh minimal install of centos7 and that networking was configured during the install
+#
+# Run:
+# centos7-general eth99 DE:AD:DE:AD:DE:AD 192.168.1.99 node99 user123
+
+IFACE=$1 # enp0s3
+MAC=$2
+IPADDR=$3 #192.168.1.z
+HOSTNAME=$4
+USER=$5
+CALLING_CONTEXT=$(pwd)
+
+if [ $(id -u) -ne 0 ]
+  then
+  echo "ERROR: Run as Root; Aborting"
+  exit
+fi
+
+echo "Making Dirs"
+cd /home/$USER
+su $USER -c "mkdir downloads bin trash" # scripts dir should hold this file!
+
+cd $CALLING_CONTEXT
+./centos7-dotfiles $USER
+./centos7-static-ip-ssh $IFACE $IPADDR $HOSTNAME $USER
+./centos7-force-interace-name $IFACE $MAC
+./centos7-software
+# ./centos7-security ;# I like to run this manually because afterwards only key based ssh will work

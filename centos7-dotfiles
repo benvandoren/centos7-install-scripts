@@ -1,0 +1,28 @@
+#!/bin/bash
+# run as root
+
+USER=$1
+
+echo "vimrc $USER"
+su $USER -c \
+"printf \
+\"syntax on\n\
+colorscheme elflord\n\
+set tabstop=4\n\
+set shiftwidth=4\n\
+set expandtab\n\
+set autoindent\n\
+set smartindent\"\
+ > /home/$USER/.vimrc"
+
+ echo "vimrc root"
+ su -c \
+ "printf \
+ \"syntax on\n\
+ colorscheme elflord\n\
+ set tabstop=4\n\
+ set shiftwidth=4\n\
+ set expandtab\n\
+ set autoindent\n\
+ set smartindent\"\
+  > /root/.vimrc"
